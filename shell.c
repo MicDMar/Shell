@@ -9,20 +9,20 @@
 /* inputBuf: Stores user input.
    cwd: Stores current working directory.
    args: Stores pointers for each argument.
+   usr: Stores the username for the user.
 */
 char inputBuf[1024];
 char cwd[1024];
 char *args[1024];
-
+char *usr;
 
 
 /* This function prints the output in a General format
    which will be handy for debugging and for basic
    output to the user. */
 void print(char *str){
-  int len = strlen(str);
 
-  write(1, str, len);
+  write(1, str, strlen(str));
   write(1, "\n", 1);
 }
 
@@ -31,9 +31,10 @@ void print(char *str){
    for the user to see before putting in input. Added a $
    to the end of the directory print out. */
 void print_dir(char *str){
-  int len = strlen(str);
 
-  write(1, str, len);
+  write(1, usr, strlen(usr));
+  write(1, "@Mic:", 5);
+  write(1, str, strlen(str));
   write(1, "$ ", 2);
 }
 
@@ -85,6 +86,7 @@ void user_input(){
 /* This function gets the current working directory
    for the user. */
 void get_path(){
+
   getcwd(cwd, sizeof(cwd));
   print_dir(cwd);
 }
@@ -194,6 +196,9 @@ int parse_input(){
 int main(int argc, char **argv){
 
   print("Michael Shell vX.x\n");
+
+  usr = getenv("USER");
+  if(usr==NULL) return 2;
 
   //Main loop to continuously ask for user input.
   while(1){
