@@ -212,8 +212,14 @@ int main(int argc, char **argv){
     // Parse the input given and determine what to do with it.
     if(parse_input() == 1){
       break; 
+    } 
+   
+    int pid = fork(); 
+    if(pid == 0){
+      execvp(args[0], args);
     } else {
-      continue;
+      int exitCode;
+      while( wait(&exitCode) != pid);
     }
 
     //DEBUG OUTPUT 
