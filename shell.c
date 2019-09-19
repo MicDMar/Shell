@@ -8,14 +8,17 @@
 
 /* inputBuf: Stores user input.
    cwd: Stores current working directory.
+   input_file: Stores the file for stdin redierction.
+   output_file: Stores the file for stdout redirection.
    args: Stores pointers for each argument.
    usr: Stores the username for the user.
+   append: Flag to tell if the redirection is ment to append or not.
 */
 char inputBuf[1024];
 char cwd[1024];
-char *args[1024];
 char input_file[1024];
 char output_file[1024];
+char *args[1024];
 char *usr;
 int append = 0;
 
@@ -129,6 +132,10 @@ void change_dir(char *dir){
 }
 
 
+/* This function grabs the input and output
+   file that the user may have specified before
+   parsing out the commands and arguments.
+*/
 void redirect(){
   
   char *ch = inputBuf;
@@ -151,6 +158,10 @@ void redirect(){
       }
       char *in = input_file;
       while(*ch != ' ' && *ch != '\0'){
+        if (*ch == '<' || *ch == '>'){
+          ch--;
+          break;
+        }
         *in = *ch;
         ch++;
         in++;
@@ -178,6 +189,10 @@ void redirect(){
       }
       char *out = output_file;
       while(*ch != ' ' && *ch != '\0'){
+        if (*ch == '<' || *ch == '>'){
+          ch--;
+          break;
+        }
         *out = *ch;
         ch++;
         out++;
@@ -190,6 +205,12 @@ void redirect(){
   }
 }
 
+
+/* This function deletes the files that
+   may or may not have been passed in by the user
+   so that stdin and stdout are only closed
+   when they need to be.
+*/
 void erase_files(){
   
   char *eraser = input_file;
@@ -199,23 +220,32 @@ void erase_files(){
   append = 0;
 }
 
+
+/* This function executes the command given
+   by the user, redirection output and input
+   as needed.
+*/
 void execute_command(){
     
   int pid = fork(); 
+  int fd;
   if(pid == 0){
 
     if(strlen(input_file) != 0){
-      close(0);
-      open(input_file, O_RDONLY | O_CREAT, 0666);
+      fd = open(input_file, O_RDONLY);
+      dup2(fd, 0);
+      close(fd);
     }
 
     if(strlen(output_file) != 0){
-      close(1);
       if(append == 1){
-        open(output_file, O_APPEND | O_CREAT, 0666);
+        fd = open(output_file, O_CREAT | O_WRONLY | O_APPEND, 0666);
+        dup2(fd, 1);
       } else {
-        open(output_file, O_WRONLY | O_CREAT, 0666);
+        fd = open(output_file, O_CREAT | O_WRONLY, 0666);
+        dup2(fd, 1);
       }
+      close(fd);
     }
 
     execvp(args[0], args);
@@ -306,13 +336,12 @@ int main(int argc, char **argv){
       break;
     }
 
+    // Execute the command specified by the user.
     execute_command();
 
+    // Clean up any files left over after fork is done.
     erase_files();
     
-    //DEBUG OUTPUT 
-    //print(inputBuf);
-
   }
 
   print("\nGoodbye.");
